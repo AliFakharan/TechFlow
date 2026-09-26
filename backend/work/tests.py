@@ -72,6 +72,31 @@ class TaskCreationTests(TaskTestBase):
         task = Task.objects.get(title="My task")
         self.assertEqual(task.assignee, self.dev_member)
 
+    def test_developer_can_assign_task_to_team_member(self):
+        other_user, other_member = build_developer("dev3", team=self.team, org=self.org)
+        self.client.force_authenticate(self.dev_user)
+        resp = self.client.post(
+            "/api/tasks/create/",
+            {
+                "project": self.project.pk,
+                "title": "For teammate",
+                "assignee": other_member.pk,
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        task = Task.objects.get(title="For teammate")
+        self.assertEqual(task.assignee, other_member)
+        self.assertEqual(task.creator, self.dev_member)
+        from audit_app.models import AuditLog
+
+        log = AuditLog.objects.filter(
+            action="task_created", entity_id=str(task.pk)
+        ).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.new_value.get("creator"), self.dev_member.pk)
+        self.assertEqual(log.new_value.get("assignee"), other_member.pk)
+
 
 class TaskStatusTests(TaskTestBase):
     def test_developer_quick_status_change_own_task(self):

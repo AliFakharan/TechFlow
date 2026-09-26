@@ -120,9 +120,19 @@ class TaskCreate(generics.CreateAPIView):
                     "می‌توانید وظیفه فقط در پروژه‌های تیم خود ایجاد کنید."
                 )
             data["project"] = project.pk
+            # Assignee may be any active member of the same team (or self).
             # Default assignee is themselves (fast flow).
             if not data.get("assignee"):
                 data["assignee"] = member.pk
+            else:
+                assignee = Member.objects.filter(
+                    pk=data["assignee"], is_active=True, team_id=member.team_id
+                ).first()
+                if assignee is None:
+                    raise PermissionDenied(
+                        "مسئول باید عضو فعال تیم شما باشد."
+                    )
+                data["assignee"] = assignee.pk
         else:
             if (
                 data.get("assignee")
@@ -144,7 +154,12 @@ class TaskCreate(generics.CreateAPIView):
             entity_id=task.pk,
             entity_label=task.title,
             team=task.project.team,
-            new_value={"status": task.status, "work_type": task.work_type},
+            new_value={
+                "status": task.status,
+                "work_type": task.work_type,
+                "creator": task.creator_id,
+                "assignee": task.assignee_id,
+            },
         )
         return Response(TaskSerializer(task).data, status=status.HTTP_201_CREATED)
 

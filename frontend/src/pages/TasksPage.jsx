@@ -314,18 +314,16 @@ function CreateTaskModal({ projects, members, ops, onClose, onCreated }) {
               onChange={set("priority")}
             />
           </Field>
-          {ops && (
-            <Field label="مسئول">
-              <Select
-                options={members
-                  .filter((m) => m.role === "developer")
-                  .map((m) => [m.id, m.full_name])}
-                value={form.assignee}
-                onChange={set("assignee")}
-                placeholder="بدون مسئول"
-              />
-            </Field>
-          )}
+          <Field label="مسئول">
+            <Select
+              options={members
+                .filter((m) => m.role === "developer")
+                .map((m) => [m.id, m.full_name])}
+              value={form.assignee}
+              onChange={set("assignee")}
+              placeholder="خودم"
+            />
+          </Field>
           <Field label="مهلت (اختیاری)">
             <JalaliDateField
               value={form.due_date}
