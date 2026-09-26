@@ -56,7 +56,10 @@ DEVELOPER_PROJECT_FIELDS = {"progress_percent", "description"}
 
 
 class _TeamScopedMixin:
-    """Restrict developers to projects of their own team / their projects."""
+    """Restrict developers to projects they own or are invited to.
+
+    Non-developers (admin, managers, scrum master, deputy) see everything.
+    """
 
     def get_queryset(self):
         qs = Project.objects.select_related("team", "owner").prefetch_related(
@@ -66,11 +69,11 @@ class _TeamScopedMixin:
         member = get_member(self.request.user)
         if member and member.role == Role.DEVELOPER:
             qs = qs.filter(
-                Q(
+                Q(owner=member)
+                | Q(
                     project_members__member=member,
                     project_members__unassigned_at__isnull=True,
                 )
-                | Q(team_id=member.team_id)
             )
         return qs.distinct()
 

@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 
 from audit_app.services import record_audit
 from core.constants import Role, TaskStatus
-from core.permissions import IsOperations, get_member, has_role
+from core.permissions import IsOperations, get_member, has_role, visible_project_ids
 from projects.models import Project
 from teams.models import Member
 
@@ -45,10 +45,11 @@ class TaskList(generics.ListAPIView):
             qs = qs.filter(work_type=params["work_type"])
         if params.get("assignee"):
             qs = qs.filter(assignee_id=params["assignee"])
-        # Developers only see tasks in their team's projects (or their own).
+        # Developers only see tasks assigned to them OR tasks in projects
+        # they own / are invited to.
         if member and member.role == Role.DEVELOPER:
             qs = qs.filter(
-                Q(assignee=member) | Q(project__team_id=member.team_id)
+                Q(assignee=member) | Q(project_id__in=visible_project_ids(member))
             ).distinct()
         return qs
 

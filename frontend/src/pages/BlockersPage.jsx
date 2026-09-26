@@ -203,13 +203,27 @@ function CreateBlockerModal({ projects, members, ops, onClose, onCreated }) {
     title: "",
     description: "",
     project: "",
+    task: "",
     category: "technical",
     priority: "medium",
     owner: "",
   });
+  const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Load tasks for the selected project so a blocker can be attached to one.
+  useEffect(() => {
+    if (!form.project) {
+      setTasks([]);
+      return;
+    }
+    api
+      .list(`/api/tasks/?project=${form.project}`)
+      .then(setTasks)
+      .catch(() => setTasks([]));
+  }, [form.project]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -220,6 +234,7 @@ function CreateBlockerModal({ projects, members, ops, onClose, onCreated }) {
         title: form.title,
         description: form.description,
         project: form.project ? Number(form.project) : null,
+        task: form.task ? Number(form.task) : null,
         category: form.category,
         priority: form.priority,
         owner: ops && form.owner ? Number(form.owner) : null,
@@ -253,6 +268,15 @@ function CreateBlockerModal({ projects, members, ops, onClose, onCreated }) {
               value={form.project}
               onChange={set("project")}
               placeholder="بدون پروژه"
+            />
+          </Field>
+          <Field label="وظیفه (اختیاری)">
+            <Select
+              options={tasks.map((t) => [t.id, t.title])}
+              value={form.task}
+              onChange={set("task")}
+              placeholder={form.project ? "بدون وظیفه" : "ابتدا پروژه را انتخاب کنید"}
+              disabled={!form.project}
             />
           </Field>
           <Field label="دسته">

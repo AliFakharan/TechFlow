@@ -16,6 +16,7 @@ Permission model:
   blockers, own support tickets).
 """
 
+from django.db.models import Q
 from rest_framework.permissions import BasePermission, IsAuthenticated
 
 from .constants import Role
@@ -29,6 +30,24 @@ def get_member(user):
         return user.member
     except Exception:
         return None
+
+
+def visible_project_ids(member):
+    """Return a queryset of project ids a developer may see.
+
+    A developer sees projects they own OR projects they are currently
+    assigned to (invited). Non-developers (admin, managers, scrum master,
+    deputy) are handled separately by the callers (they see everything).
+    """
+    from projects.models import Project
+
+    return Project.objects.filter(
+        Q(owner=member)
+        | Q(
+            project_members__member=member,
+            project_members__unassigned_at__isnull=True,
+        )
+    ).values_list("id", flat=True)
 
 
 def has_role(user, roles):

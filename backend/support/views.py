@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 
 from audit_app.services import record_audit
 from core.constants import Role, SupportStatus
-from core.permissions import get_member, has_role
+from core.permissions import get_member, has_role, visible_project_ids
 from teams.models import Member
 
 from .models import SupportTicket
@@ -40,7 +40,7 @@ class SupportList(generics.ListAPIView):
             qs = qs.filter(assignee=member)
         if member and member.role == Role.DEVELOPER:
             qs = qs.filter(
-                Q(assignee=member) | Q(project__team_id=member.team_id)
+                Q(assignee=member) | Q(project_id__in=visible_project_ids(member))
             ).distinct()
         return qs
 
