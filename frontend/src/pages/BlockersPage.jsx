@@ -237,7 +237,7 @@ function CreateBlockerModal({ projects, members, ops, onClose, onCreated }) {
         task: form.task ? Number(form.task) : null,
         category: form.category,
         priority: form.priority,
-        owner: ops && form.owner ? Number(form.owner) : null,
+        owner: form.owner ? Number(form.owner) : null,
       });
       onCreated();
     } catch (err) {
@@ -293,16 +293,14 @@ function CreateBlockerModal({ projects, members, ops, onClose, onCreated }) {
               onChange={set("priority")}
             />
           </Field>
-          {ops && (
-            <Field label="صاحب مانع">
-              <Select
-                options={members.map((m) => [m.id, m.full_name])}
-                value={form.owner}
-                onChange={set("owner")}
-                placeholder="خودم"
-              />
-            </Field>
-          )}
+          <Field label="صاحب مانع (اختیاری)">
+            <Select
+              options={members.map((m) => [m.id, m.full_name])}
+              value={form.owner}
+              onChange={set("owner")}
+              placeholder="نامشخص"
+            />
+          </Field>
           <Field label="توضیحات" full>
             <TextArea
               value={form.description}

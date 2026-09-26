@@ -5,6 +5,7 @@ from .models import Blocker
 
 class BlockerSerializer(serializers.ModelSerializer):
     owner_name = serializers.CharField(source="owner.full_name", read_only=True)
+    creator_name = serializers.CharField(source="creator.full_name", read_only=True)
     project_name = serializers.CharField(source="project.name", read_only=True)
     task_title = serializers.CharField(source="task.title", read_only=True)
     age_days = serializers.IntegerField(read_only=True)
@@ -21,6 +22,8 @@ class BlockerSerializer(serializers.ModelSerializer):
             "project_name",
             "owner",
             "owner_name",
+            "creator",
+            "creator_name",
             "category",
             "priority",
             "status",
@@ -28,10 +31,11 @@ class BlockerSerializer(serializers.ModelSerializer):
             "age_days",
             "created_at",
         ]
-        read_only_fields = ["id", "resolved_at", "created_at"]
+        read_only_fields = ["id", "creator", "resolved_at", "created_at"]
         extra_kwargs = {
             "task": {"required": False, "allow_null": True},
             "project": {"required": False, "allow_null": True},
+            "owner": {"required": False, "allow_null": True},
         }
 
     def validate(self, attrs):

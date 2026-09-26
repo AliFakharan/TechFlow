@@ -32,9 +32,19 @@ class Blocker(BaseModel):
     )
     owner = models.ForeignKey(
         "teams.Member",
-        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name="blockers",
         verbose_name="صاحب مانع",
+    )
+    creator = models.ForeignKey(
+        "teams.Member",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_blockers",
+        verbose_name="ثبت‌کننده",
     )
     category = models.CharField(
         "دسته",

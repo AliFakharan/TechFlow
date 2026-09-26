@@ -35,7 +35,9 @@ class BlockerTests(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         blocker = Blocker.objects.get(title="No Figma designs")
-        self.assertEqual(blocker.owner, self.dev_member)
+        # Owner is optional; when omitted it stays unset. Creator is recorded.
+        self.assertIsNone(blocker.owner)
+        self.assertEqual(blocker.creator, self.dev_member)
         self.assertEqual(blocker.status, BlockerStatus.OPEN)
         self.assertTrue(
             AuditLog.objects.filter(
@@ -43,7 +45,7 @@ class BlockerTests(APITestCase):
             ).exists()
         )
 
-    def test_developer_cannot_create_blocker_for_other_owner(self):
+    def test_developer_can_set_owner(self):
         self.client.force_authenticate(self.dev_user)
         resp = self.client.post(
             "/api/blockers/create/",
@@ -54,7 +56,10 @@ class BlockerTests(APITestCase):
             },
             format="json",
         )
-        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        blocker = Blocker.objects.get(title="Fake")
+        self.assertEqual(blocker.owner, self.member)
+        self.assertEqual(blocker.creator, self.dev_member)
 
     def test_blocker_requires_project_or_task(self):
         self.client.force_authenticate(self.dev_user)

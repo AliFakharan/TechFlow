@@ -21,6 +21,13 @@ from .models import Blocker
 from .serializers import BlockerResolveSerializer, BlockerSerializer
 
 
+def _is_blocker_actor(blocker, member):
+    """True if the member is the blocker's owner or creator."""
+    if member is None:
+        return False
+    return blocker.owner_id == member.id or blocker.creator_id == member.id
+
+
 class BlockerList(generics.ListAPIView):
     serializer_class = BlockerSerializer
     permission_classes = [IsAuthenticated]
@@ -38,10 +45,11 @@ class BlockerList(generics.ListAPIView):
         if params.get("category"):
             qs = qs.filter(category=params["category"])
         if params.get("mine") in ("1", "true") and member:
-            qs = qs.filter(owner=member)
+            qs = qs.filter(Q(owner=member) | Q(creator=member))
         if member and member.role == Role.DEVELOPER:
             qs = qs.filter(
                 Q(owner=member)
+                | Q(creator=member)
                 | Q(project_id__in=visible_project_ids(member))
             ).distinct()
         return qs
@@ -56,15 +64,12 @@ class BlockerCreate(generics.CreateAPIView):
         if member is None:
             raise PermissionDenied("حساب شما متصل به عضوی نیست.")
         data = request.data.copy()
-        if not has_role(request.user, Role.OPERATIONS_ROLES):
-            if data.get("owner") and int(data["owner"]) != member.id:
-                raise PermissionDenied(
-                    "توسعه‌دهنده می‌تواند مانع را فقط برای خودش ثبت کند."
-                )
-            data["owner"] = member.pk
-        else:
-            if not data.get("owner") and member is not None:
-                data["owner"] = member.pk
+        # The creator is always the current member (recorded in the log).
+        data["creator"] = member.pk
+        # Owner is optional: it represents "whose responsibility is this
+        # blocker". Anyone may set it (or leave it empty if unknown).
+        if data.get("owner") in ("", None):
+            data["owner"] = None
 
         serializer = self.get_serializer(data=dict(data))
         serializer.is_valid(raise_exception=True)
@@ -80,6 +85,8 @@ class BlockerCreate(generics.CreateAPIView):
                 "category": blocker.category,
                 "project": blocker.project_id,
                 "task": blocker.task_id,
+                "owner": blocker.owner_id,
+                "creator": blocker.creator_id,
             },
         )
         return Response(BlockerSerializer(blocker).data, status=status.HTTP_201_CREATED)
@@ -96,8 +103,8 @@ class BlockerDetail(generics.RetrieveUpdateAPIView):
         blocker = self.get_object()
         member = get_member(request.user)
         is_ops = has_role(request.user, Role.OPERATIONS_ROLES)
-        if not is_ops and blocker.owner_id != (member.id if member else None):
-            raise PermissionDenied("شما صاحب این مانع نیستید.")
+        if not is_ops and not _is_blocker_actor(blocker, member):
+            raise PermissionDenied("شما صاحب یا ثبت‌کننده این مانع نیستید.")
         response = super().update(request, *args, **kwargs)
         return response
 
@@ -116,8 +123,8 @@ class ResolveBlockerView(APIView):
             )
         member = get_member(request.user)
         is_ops = has_role(request.user, Role.OPERATIONS_ROLES)
-        if not is_ops and blocker.owner_id != (member.id if member else None):
-            raise PermissionDenied("شما صاحب این مانع نیستید.")
+        if not is_ops and not _is_blocker_actor(blocker, member):
+            raise PermissionDenied("شما صاحب یا ثبت‌کننده این مانع نیستید.")
         old_status = blocker.status
         blocker.status = BlockerStatus.RESOLVED
         blocker.save(update_fields=["status", "resolved_at", "updated_at"])
