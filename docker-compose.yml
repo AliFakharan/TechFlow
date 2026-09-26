@@ -71,6 +71,19 @@ services:
     networks:
       - services
 
+  # Adminer — lightweight, user-friendly database UI (browse/edit/delete rows).
+  # Open http://<server-ip>:8080 and log in with:
+  #   System: PostgreSQL, Server: db, Username/Password/Database from .env
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "${TECHFLOW_ADMINER_PORT:-8080}:8080"
+    depends_on:
+      - db
+    networks:
+      - services
+
 volumes:
   pgdata:
 
