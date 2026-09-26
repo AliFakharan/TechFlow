@@ -1,0 +1,10 @@
+# Keep the image slim and make sure local secrets never end up in it.
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+staticfiles/
+media/
+.pytest_cache/
