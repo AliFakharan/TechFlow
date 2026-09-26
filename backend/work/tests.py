@@ -72,8 +72,9 @@ class TaskCreationTests(TaskTestBase):
         task = Task.objects.get(title="My task")
         self.assertEqual(task.assignee, self.dev_member)
 
-    def test_developer_can_assign_task_to_team_member(self):
+    def test_developer_can_assign_task_to_project_member(self):
         other_user, other_member = build_developer("dev3", team=self.team, org=self.org)
+        ProjectMember.objects.create(project=self.project, member=other_member)
         self.client.force_authenticate(self.dev_user)
         resp = self.client.post(
             "/api/tasks/create/",
@@ -96,6 +97,21 @@ class TaskCreationTests(TaskTestBase):
         self.assertIsNotNone(log)
         self.assertEqual(log.new_value.get("creator"), self.dev_member.pk)
         self.assertEqual(log.new_value.get("assignee"), other_member.pk)
+
+    def test_developer_cannot_assign_task_to_non_project_member(self):
+        other_user, other_member = build_developer("dev4", team=self.team, org=self.org)
+        # other_member is NOT added to the project.
+        self.client.force_authenticate(self.dev_user)
+        resp = self.client.post(
+            "/api/tasks/create/",
+            {
+                "project": self.project.pk,
+                "title": "Not allowed",
+                "assignee": other_member.pk,
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class TaskStatusTests(TaskTestBase):

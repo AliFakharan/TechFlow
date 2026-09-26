@@ -252,9 +252,23 @@ function CreateTaskModal({ projects, members, ops, onClose, onCreated }) {
     assignee: "",
     due_date: "",
   });
+  const [projectMembers, setProjectMembers] = useState([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Load the selected project's members so the assignee dropdown only shows
+  // people who are actually on that project.
+  useEffect(() => {
+    if (!form.project) {
+      setProjectMembers([]);
+      return;
+    }
+    api
+      .get(`/api/projects/${form.project}/`)
+      .then((d) => setProjectMembers(d.project_members || []))
+      .catch(() => setProjectMembers([]));
+  }, [form.project]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -316,12 +330,11 @@ function CreateTaskModal({ projects, members, ops, onClose, onCreated }) {
           </Field>
           <Field label="مسئول">
             <Select
-              options={members
-                .filter((m) => m.role === "developer")
-                .map((m) => [m.id, m.full_name])}
+              options={projectMembers.map((pm) => [pm.member, pm.member_name])}
               value={form.assignee}
               onChange={set("assignee")}
-              placeholder="خودم"
+              placeholder={form.project ? "خودم" : "ابتدا پروژه را انتخاب کنید"}
+              disabled={!form.project}
             />
           </Field>
           <Field label="مهلت (اختیاری)">

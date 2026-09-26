@@ -120,17 +120,20 @@ class TaskCreate(generics.CreateAPIView):
                     "می‌توانید وظیفه فقط در پروژه‌های تیم خود ایجاد کنید."
                 )
             data["project"] = project.pk
-            # Assignee may be any active member of the same team (or self).
+            # Assignee may be any active member of the project (or self).
             # Default assignee is themselves (fast flow).
             if not data.get("assignee"):
                 data["assignee"] = member.pk
             else:
                 assignee = Member.objects.filter(
-                    pk=data["assignee"], is_active=True, team_id=member.team_id
+                    pk=data["assignee"],
+                    is_active=True,
+                    project_memberships__project=project,
+                    project_memberships__unassigned_at__isnull=True,
                 ).first()
                 if assignee is None:
                     raise PermissionDenied(
-                        "مسئول باید عضو فعال تیم شما باشد."
+                        "مسئول باید عضو فعال این پروژه باشد."
                     )
                 data["assignee"] = assignee.pk
         else:
