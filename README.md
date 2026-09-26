@@ -79,6 +79,36 @@ docker compose logs backend | grep Password   # اگر رمز ادمین تول�
 - دیتابیس روی `pgdata` volume ماندگار است؛ برای reset کامل:
   `docker compose down -v && docker compose up -d --build`
 
+### استقرار خودکار (CI/CD)
+
+با push روی شاخه‌ی `main`، GitHub Actions به‌صورت خودکار روی سرور `git pull` می‌کند و
+کانتینرها را بازسازی و ری‌استارت می‌کند — دیگر نیازی به `docker compose down/build/up`
+دستی نیست.
+
+**راه‌اندازی یک‌باره (روی GitHub):**
+
+1. در مخزن GitHub: **Settings → Secrets and variables → Actions → New repository secret**
+   و این secret ها را بسازید:
+
+   | Secret                | مقدار                                              |
+   | --------------------- | -------------------------------------------------- |
+   | `SERVER_HOST`         | `192.168.1.13`                                     |
+   | `SERVER_USER`         | کاربر SSH سرور (مثلاً `root`)                      |
+   | `SERVER_SSH_KEY`      | کلید خصوصی SSH (محتوای کامل `~/.ssh/id_ed25519`)   |
+   | `SERVER_PORT`         | پورت SSH (پیش‌فرض `22`)                            |
+   | `SERVER_PROJECT_PATH` | مسیر پروژه روی سرور (مثلاً `/root/TechFlow`)       |
+
+2. روی سرور، کلید عمومی متناظر را به `~/.ssh/authorized_keys` اضافه کنید.
+
+3. حالا هر `git push origin main` به‌صورت خودکار deploy می‌شود. برای اجرای دستی هم
+   می‌توانید از تب **Actions → Deploy to Server → Run workflow** استفاده کنید.
+
+**جایگزین دستی (روی سرور):**
+
+```bash
+./deploy.sh   # معادل: git pull && docker compose up -d --build
+```
+
 ### ثبت‌نام (Signup)
 
 - صفحه‌ی ورود تب «ثبت‌نام» دارد؛ حساب جدید به‌صورت **توسعه‌دهنده** در اولین تیم ثبت می‌شود.
