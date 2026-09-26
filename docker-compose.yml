@@ -5,7 +5,7 @@ name: techflow
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:15.7-alpine
     environment:
       POSTGRES_USER: ${TECHFLOW_DB_USER:-techflow}
       POSTGRES_PASSWORD: ${TECHFLOW_DB_PASSWORD:-techflow}
@@ -24,6 +24,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - services
 
   backend:
     build: ./backend
@@ -52,6 +54,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - services
 
   frontend:
     build:
@@ -64,6 +68,12 @@ services:
       - "${TECHFLOW_FRONTEND_PORT:-5173}:5173"
     depends_on:
       - backend
+    networks:
+      - services
 
 volumes:
   pgdata:
+
+networks:
+  services:
+    external: true
