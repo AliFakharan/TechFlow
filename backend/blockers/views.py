@@ -64,8 +64,6 @@ class BlockerCreate(generics.CreateAPIView):
         if member is None:
             raise PermissionDenied("حساب شما متصل به عضوی نیست.")
         data = request.data.copy()
-        # The creator is always the current member (recorded in the log).
-        data["creator"] = member.pk
         # Owner is optional: it represents "whose responsibility is this
         # blocker". Anyone may set it (or leave it empty if unknown).
         if data.get("owner") in ("", None):
@@ -74,6 +72,10 @@ class BlockerCreate(generics.CreateAPIView):
         serializer = self.get_serializer(data=dict(data))
         serializer.is_valid(raise_exception=True)
         blocker = serializer.save()
+        # The creator is always the current member. It is set directly on the
+        # object (not via serializer data) because "creator" is read-only.
+        blocker.creator = member
+        blocker.save(update_fields=["creator", "updated_at"])
         record_audit(
             request,
             action="blocker_created",
